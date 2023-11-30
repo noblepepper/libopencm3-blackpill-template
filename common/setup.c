@@ -38,6 +38,8 @@
 #include <libopencm3/cm3/systick.h>
 #include <libopencm3/cm3/cortex.h>
 #include <libopencm3/usb/dwc/otg_fs.h>
+#include <libopencm3/stm32/i2c.h>
+#include <libopencm3/stm32/spi.h>
 #include <stdio.h>
 #include <errno.h>
 
@@ -107,7 +109,7 @@ void usart_setup(void)
 int _write(int file, char *ptr, int len)
 {
 	int i;
-	setvbuf(stdout, NULL, _IONBF, 0);
+	//setvbuf(stdout, NULL, _IONBF, 0);
 	if (file == 1) {
 		for (i = 0; i < len; i++)
 			usart_send_blocking(USART2, ptr[i]);
@@ -121,6 +123,11 @@ int _write(int file, char *ptr, int len)
 void gpio_setup(void)
 {
 	/* Set up LED pins */
+	gpio_mode_setup(GPIOC, GPIO_MODE_OUTPUT, GPIO_PUPD_NONE, GPIO13);
+	gpio_mode_setup(GPIOA, GPIO_MODE_OUTPUT, GPIO_PUPD_NONE, GPIO4);
+	gpio_set_output_options(GPIOA, 
+			GPIO_OTYPE_PP, GPIO_OSPEED_50MHZ, GPIO15);
+	gpio_mode_setup(GPIOA, GPIO_MODE_OUTPUT, GPIO_PUPD_NONE, GPIO15);
 }
 
 static bool usb_config_updated = true;
@@ -158,4 +165,69 @@ static uint8_t usbd_control_buffer[512];
 	OTG_FS_GCCFG |= OTG_GCCFG_NOVBUSSENS | OTG_GCCFG_PWRDWN;
 	OTG_FS_GCCFG &= ~(OTG_GCCFG_VBUSBSEN | OTG_GCCFG_VBUSASEN);
 
+}
+
+/* Initialize I2C1 interface */
+void i2c_setup(void) {
+	/* Enable GPIOB and I2C1 clocks */
+	rcc_periph_clock_enable(RCC_GPIOB);
+	rcc_periph_clock_enable(RCC_I2C1);
+	/* Set alternate functions for SCL and SDA pins of I2C1 */
+	gpio_set_output_options(GPIOB, 
+			GPIO_OTYPE_OD, GPIO_OSPEED_50MHZ, GPIO6|GPIO7);
+	gpio_mode_setup(GPIOB, GPIO_MODE_AF, GPIO_PUPD_NONE, GPIO6|GPIO7);
+	gpio_set_af(GPIOB, GPIO_AF4 , GPIO6|GPIO7);
+	/* Disable the I2C peripheral before configuration */
+	i2c_peripheral_disable(I2C1);
+	/* APB1 running at 48MHz */
+	i2c_set_clock_frequency(I2C1, 48);
+	/* 400kHz - I2C fast mode */
+	i2c_set_speed(I2C1, i2c_speed_fm_400k, 48);
+	/* And go */
+	i2c_peripheral_enable(I2C1);
+}
+
+/* Initialize SPI interfaces */
+void spi1_setup(void) {
+	/* Set alternate functions for SCK, MISO and MOSI pins of SPI1 */
+	/* MOSI=PA7 MISO=PA6 SCK=PA5 NSS=PA4 */
+	gpio_set_output_options(GPIOA, 
+			GPIO_OTYPE_PP, GPIO_OSPEED_50MHZ, GPIO5|GPIO7);
+	gpio_mode_setup(GPIOA, GPIO_MODE_AF, GPIO_PUPD_NONE, GPIO5|GPIO7);
+	gpio_set_af(GPIOA, GPIO_AF5, GPIO5|GPIO7);
+	gpio_mode_setup(GPIOA, GPIO_MODE_AF, GPIO_PUPD_NONE, GPIO6);
+	gpio_set_af(GPIOA, GPIO_AF5, GPIO6);
+	/* Enable GPIOB and SPI clocks */
+	rcc_periph_clock_enable(RCC_GPIOB);
+	rcc_periph_clock_enable(RCC_GPIOA);
+	rcc_periph_clock_enable(RCC_SPI1);
+	spi_init_master(SPI1, SPI_CR1_BAUDRATE_FPCLK_DIV_2, 
+			SPI_CR1_CPOL_CLK_TO_0_WHEN_IDLE,
+                        SPI_CR1_CPHA_CLK_TRANSITION_1,
+                        SPI_CR1_DFF_8BIT,
+                        SPI_CR1_MSBFIRST);
+	spi_enable_software_slave_management(SPI1);
+	spi_set_nss_high(SPI1);
+}
+
+void spi3_setup(void) {
+	/* Set alternate functions for SCK, MISO and MOSI pins of SPI3 */
+	/* MOSI=PB5 MISO=PB4 SCK=PB3 NSS=PA15 */
+	gpio_set_output_options(GPIOB, 
+			GPIO_OTYPE_PP, GPIO_OSPEED_100MHZ, GPIO3|GPIO5);
+	gpio_mode_setup(GPIOB, GPIO_MODE_AF, GPIO_PUPD_NONE, GPIO3|GPIO5);
+	gpio_set_af(GPIOB, GPIO_AF6, GPIO3|GPIO5);
+	gpio_mode_setup(GPIOB, GPIO_MODE_AF, GPIO_PUPD_NONE, GPIO4);
+	gpio_set_af(GPIOB, GPIO_AF6, GPIO4);
+	/* Enable GPIOB and SPI3 clocks */
+	rcc_periph_clock_enable(RCC_GPIOB);
+	rcc_periph_clock_enable(RCC_GPIOA);
+	rcc_periph_clock_enable(RCC_SPI3);
+	spi_init_master(SPI3, SPI_CR1_BAUDRATE_FPCLK_DIV_4, 
+			SPI_CR1_CPOL_CLK_TO_0_WHEN_IDLE,
+                        SPI_CR1_CPHA_CLK_TRANSITION_1,
+                        SPI_CR1_DFF_8BIT,
+                        SPI_CR1_MSBFIRST);
+	spi_enable_software_slave_management(SPI3);
+	spi_set_nss_high(SPI3);
 }

@@ -7,13 +7,14 @@ CFLAGS += -Wall -Wextra -Wreturn-type \
 	-I../include \
 	-I../include/$(BOARD) \
 	-Wno-char-subscripts \
-	-std=c11 -g3 -MD -I./target \
+	-std=c11 -ggdb3 -MD -I./target \
 	-I. -Iinclude -I../include -I$(BOARD_DIR) \
 
 SRC =                     \
 	main.c            \
 	usbwrap.c         \
 	setup.c           \
+	util.c            \
 
 ifndef TARGET
 NAME = $(notdir $(CURDIR))
@@ -23,10 +24,10 @@ endif
 
 $(info We are in $(notdir $(CURDIR)))
 include $(BOARD_DIR)/Makefile.inc
-
+# include ../rules.mk
 OPT_FLAGS ?= -Os
 CFLAGS += $(OPT_FLAGS)
-LDFLAGS += $(OPT_FLAGS)
+LDFLAGS += $(OPT_FLAGS) -ggdb3
 # Output memory usage information
 LDFLAGS += -Wl,--print-memory-usage
 
