@@ -1,4 +1,8 @@
 bin/
 *.elf
 *.bin
+*.o
+.*.swp
+.gdb*
 generated.*.ld
+libopencm3/*

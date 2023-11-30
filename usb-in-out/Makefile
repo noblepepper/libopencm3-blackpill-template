@@ -15,10 +15,13 @@ SRC =                     \
 	usbwrap.c         \
 	setup.c           \
 
+ifndef TARGET
+NAME = $(notdir $(CURDIR))
+TARGET = $(NAME).elf
+endif
 
-$(info BOARD is $(BOARD))
-$(info BOARD_DIR is $(BOARD_DIR))
-$(info VPATH is $(VPATH))
+
+$(info We are in $(notdir $(CURDIR)))
 include $(BOARD_DIR)/Makefile.inc
 
 OPT_FLAGS ?= -Os
@@ -26,10 +29,6 @@ CFLAGS += $(OPT_FLAGS)
 LDFLAGS += $(OPT_FLAGS)
 # Output memory usage information
 LDFLAGS += -Wl,--print-memory-usage
-
-ifndef TARGET
-TARGET = usb-in-out.elf
-endif
 
 include ../common/boards/common/Makefile.inc
 
