@@ -47,13 +47,13 @@ void serial_init(void)
 
 	/* Setup UART parameters */
 	UART_PIN_SETUP();
-	serial_set_baudrate(38400);
+	serial_set_baudrate(115200);
 	usart_set_databits(USART_CONSOLE, 8);
 	usart_set_stopbits(USART_CONSOLE, USART_STOPBITS_1);
 	usart_set_mode(USART_CONSOLE, USART_MODE_TX_RX);
 	usart_set_parity(USART_CONSOLE, USART_PARITY_NONE);
 	usart_set_flow_control(USART_CONSOLE, USART_FLOWCONTROL_NONE);
-	USART_CR1(USART_CONSOLE) |= USART_CR1_IDLEIE;
+//	USART_CR1(USART_CONSOLE) |= USART_CR1_IDLEIE;
 
 	/* Finally enable the USART */
 	usart_enable(USART_CONSOLE);

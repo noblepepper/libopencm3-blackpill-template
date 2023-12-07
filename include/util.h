@@ -36,6 +36,5 @@
 #include <libopencm3/stm32/spi.h>
 #include <stdio.h>
 #include <errno.h>
-
-uint8_t read_register(uint8_t address);
-void write_register(uint8_t address, uint8_t data_out);
+void delay_ms(uint32_t ms);
+void delay_us(uint32_t us);

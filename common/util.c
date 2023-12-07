@@ -21,6 +21,7 @@
 #include "serialno.h"
 #include "usb_descriptors.h"
 #include "usb_serial.h"
+#include "usbwrap.h"
 
 #include <libopencm3/stm32/rcc.h>
 #include <libopencm3/cm3/scb.h>
@@ -37,4 +38,52 @@
 #include <stdio.h>
 #include <errno.h>
 
+uint32_t DelayCounter;
 
+void sys_tick_handler(void)
+{
+	DelayCounter++;
+}
+
+void delay_ms(uint32_t ms)
+{
+	DelayCounter = 0;
+	while (DelayCounter < ms * 1000) __asm__("nop")
+		;
+}
+
+void delay_us(uint32_t us)
+{
+	DelayCounter = 0;
+	while (DelayCounter < us) __asm__("nop")
+		;
+}
+
+int _write(int file, uint8_t *const ptr, const size_t len)
+{
+	if (file == 1) {
+		size_t sent = 0;
+		for (size_t offset = 0; offset < len; offset += 64)
+		{
+			const size_t count = MIN(len - offset, 64);
+			nvic_disable_irq(USB_IRQ);
+			usbd_ep_write_packet(usbdev, CDCACM_UART_ENDPOINT, ptr + offset, count);
+			nvic_enable_irq(USB_IRQ);
+			sent += count;
+			delay_us(125);/*why is this needed? */
+		}
+		return sent;
+	}
+
+	errno = EIO;
+	return -1;
+/*	int i;
+	if (file == 1) {
+		for (i = 0; i < len; i++)
+			usart_send_blocking(USART2, ptr[i]);
+		return i;
+	}
+
+	errno = EIO;
+	return -1;*/
+}

@@ -15,6 +15,7 @@ SRC =                     \
 	usbwrap.c         \
 	setup.c           \
 	util.c            \
+	max31865.c        \
 
 ifndef TARGET
 NAME = $(notdir $(CURDIR))
@@ -27,7 +28,7 @@ include $(BOARD_DIR)/Makefile.inc
 # include ../rules.mk
 OPT_FLAGS ?= -Os
 CFLAGS += $(OPT_FLAGS)
-LDFLAGS += $(OPT_FLAGS) -ggdb3
+LDFLAGS += $(OPT_FLAGS) -lm -ggdb3
 # Output memory usage information
 LDFLAGS += -Wl,--print-memory-usage
 

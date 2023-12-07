@@ -65,12 +65,6 @@ static usbd_request_return_codes_e serial_control_request(usbd_device *dev, usb_
 	case USB_CDC_REQ_SET_CONTROL_LINE_STATE:
 		/* Send a notification back on the notification endpoint */
 		usb_serial_set_state(dev, req->wIndex, CDCACM_UART_ENDPOINT + 1U);
-#ifdef USART_CONSOLE_DTR_PIN
-		gpio_set_val(USART_CONSOLE_PORT, USART_CONSOLE_DTR_PIN, !(req->wValue & 1U));
-#endif
-#ifdef USART_CONSOLE_RTS_PIN
-		gpio_set_val(USART_CONSOLE_PORT, USART_CONSOLE_RTS_PIN, !((req->wValue >> 1U) & 1U));
-#endif
 		return USBD_REQ_HANDLED;
 	case USB_CDC_REQ_SET_LINE_CODING:
 		if (*len < sizeof(usb_cdc_line_coding_s))

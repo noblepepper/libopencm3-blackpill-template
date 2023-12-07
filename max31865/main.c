@@ -24,138 +24,50 @@
 #include "board.h"
 #include "usbwrap.h"
 #include "setup.h"
+#include "util.h"
+#include "max31865.h"
+#include <math.h>
 #include <libopencm3/stm32/usart.h>
 #include <libopencm3/stm32/spi.h>
 
-uint8_t read_register(uint8_t address)
-{
-	uint8_t data_in;
-	spi_enable(SPI3);
-	gpio_clear(GPIOA, GPIO15);
-	spi_send(SPI3, address);
-	data_in = spi_read(SPI3);
-	spi_send(SPI3, 0X0);
-	data_in = spi_clean_disable(SPI3);
-	gpio_set(GPIOA, GPIO15);
-	for (int i=0; i<10; i++) __asm__("nop");
-	return(data_in);
-}
-
-void write_register(uint8_t address, uint8_t data_out)
-{
-	uint8_t data_in;
-	gpio_clear(GPIOA, GPIO15);
-	spi_enable(SPI3);
-	spi_send(SPI3, address);
-	data_in=spi_read(SPI3);
-	spi_send(SPI3, data_out);
-	data_in=spi_clean_disable(SPI3);
-	gpio_set(GPIOA, GPIO15);
-}
 
 int main(int argc, char **argv)
 {
 	(void)argc;
 	(void)argv;
-	uint8_t register_address;
-	uint8_t register_value;
 	clock_setup();
 	systick_setup();
 	usb_setup();
 	usart_setup();
 	gpio_setup();
 	spi3_setup();
-	printf("Hello\r\n");
-	for (register_address = 0x0; register_address < 0x8; register_address++)
-	{
-		register_value = read_register(register_address);
-		printf("register %#.2x value %#.2x\r\n", \
-			register_address, register_value);
-	}
-	printf("\r\n\r\n");
-	printf("setting to power up \r\n");
-/* set 31865 to powerup state */
-	/* clear fault */ 
-	write_register(0x80, 0x2);
-	/* configuration = 00h */ 
-	write_register(0x80, 0x0);
-	/* high fault MSB = ffh  */ 
-	write_register(0x83, 0xff);
-	/* high fault LSB = FFh  */ 
-	write_register(0x84, 0xFF);
-	/* low fault MSB = 00h  */ 
-	write_register(0x85, 0x00);
-	/* low fault LSB = 00h  */ 
-	write_register(0x86, 0x00);
-/* 31865 is now at powerup state */
-	for (register_address = 0x0; register_address < 0x8; register_address++)
-	{
-		register_value = read_register(register_address);
-		printf("register %#.2x value %#.2x\r\n", \
-			register_address, register_value);
-	}
-	printf("\r\n\r\n");
-	write_register(0x80, 0x90);// write configuration bias on 3 wire mode
-	for (register_address = 0x0; register_address < 0x8; register_address++)
-	{
-		register_value = read_register(register_address);
-		printf("register %#.2x value %#.2x\r\n", \
-			register_address, register_value);
-	}
+	delay_ms(5000);
+	printf("\r\n\r\nHello\r\n");
 
-
-	/* Initialize MAX31865 */
-	/* Set PT100 Wire Scheme */
-	/* Config Register Bit 4 000X0000 */
-	/* Read Address 00H Write Address 80h */ 
-	/* 1 = 3 wire  0 = 2 or 4 wire */
-
-	/* Enable Bias Current */
-	/* Config Register Bit 7 X0000000 */
-	/* Read Address 00H Write Address 80h */ 
-	/* 1 = on  0 = off */
-
-	/* Set to Autoconvert */
-	/* Config Register Bit 6 0X000000 */
-	/* Read Address 00H Write Address 80h */ 
-	/* 1 = auto  0 = off */
+	set_max31865_to_power_up();
+	init_max31865_triggered_60hz();
+	print_max31865_registers();
 	
-	/* Set Fault Thresholds */
-	/* High Fault Register MSB 03h LSB 04h  */
-	/* FFFF = max */
-	/* Low Fault Register MSB 05h LSB 06h  */
-	/* 0000 = min */
-	
-	/* Clear Faults */
-	/* Config Register Bit 1 000000X0 */
-	/* 1 = clear */
-
-	/* 50/60hz */
-	/* Config Register Bit 0 0000000X */
-	/* 1 = 50hz 0= 60hz*/
-
+	float resistance, temperature, temperature2, temperature3;
+	float Rref = 439;
+	delay_ms(1000);
 	while (true) {
-		if (usb_data_waiting())
+		int i;
+		gpio_toggle(GPIOC, GPIO13);
+		resistance = 0;
+		for (i = 0; i < 512; i++)
 		{
-			putchar(usb_recv_blocking());
-			fflush(stdout);
+			one_shot();
+			while (!gpio_get(GPIOB, GPIO6));
+			resistance += read_rtd_resistance(439);
 		}
-		if (usart_data_waiting(USART_CONSOLE))
-		{
-			usb_send_blocking(usart_recv(USART_CONSOLE));
-		}
-/*		strncpy(message, "command", 8);
-		tosend = message;
-		messagelength=8;
-		while(messagelength > 0) {
-			putchar(*tosend);
-			fflush(stdout);
-			//spi_send(SPI3, *message);
-			tosend++;
-			messagelength--;
-		}
-*/
-		asm("nop");
+		resistance = resistance / 512;
+		temperature = get_temperature_method1(resistance);
+		temperature2 = get_temperature_method2(resistance);
+		temperature3 = get_temperature_method3(resistance);
+		printf("temperature F  %3.2f ", temperature);
+		printf("temperature2 F  %3.2f ", temperature2);
+		printf("temperature3 F  %3.2f \r\n", temperature3);
 	}
 
 	return 0;

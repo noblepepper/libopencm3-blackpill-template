@@ -71,18 +71,16 @@ void systick_setup(void)
 {
 	/* Setup heartbeat timer */
 	/* 12 Mhz */
-	systick_set_clocksource(STK_CSR_CLKSOURCE_AHB_DIV8);
+//	systick_set_clocksource(STK_CSR_CLKSOURCE_AHB_DIV8);
 	/* Interrupt us at 100 Hz */
-	systick_set_reload(rcc_ahb_frequency / (8U * SYSTICKHZ));
+//	systick_set_reload(rcc_ahb_frequency / (8U * SYSTICKHZ));
 	/* SYSTICK_IRQ with low priority */
-	nvic_set_priority(NVIC_SYSTICK_IRQ, 14U << 4U);
-	systick_interrupt_enable();
+//	nvic_set_priority(NVIC_SYSTICK_IRQ, 14U << 4U);
+//	systick_interrupt_enable();
+	systick_set_frequency(1000000, 96000000);
 	systick_counter_enable();
-}
-
-void sys_tick_handler(void)
-{
-	time_ms += SYSTICKMS;
+	systick_interrupt_enable();
+//	systick_counter_enable();
 }
 
 void usart_setup(void)
@@ -98,7 +96,7 @@ void usart_setup(void)
 	usart_set_mode(USART_CONSOLE, USART_MODE_TX_RX);
 	usart_set_parity(USART_CONSOLE, USART_PARITY_NONE);
 	usart_set_flow_control(USART_CONSOLE, USART_FLOWCONTROL_NONE);
-	USART_CR1(USART_CONSOLE) |= USART_CR1_IDLEIE;
+//	USART_CR1(USART_CONSOLE) |= USART_CR1_IDLEIE;
 
 	/* Finally enable the USART */
 	usart_enable(USART_CONSOLE);
@@ -106,25 +104,12 @@ void usart_setup(void)
 	usart_enable_rx_dma(USART_CONSOLE);
 }
 
-int _write(int file, char *ptr, int len)
-{
-	int i;
-	//setvbuf(stdout, NULL, _IONBF, 0);
-	if (file == 1) {
-		for (i = 0; i < len; i++)
-			usart_send_blocking(USART2, ptr[i]);
-		return i;
-	}
-
-	errno = EIO;
-	return -1;
-}
-
 void gpio_setup(void)
 {
 	/* Set up LED pins */
 	gpio_mode_setup(GPIOC, GPIO_MODE_OUTPUT, GPIO_PUPD_NONE, GPIO13);
 	gpio_mode_setup(GPIOA, GPIO_MODE_OUTPUT, GPIO_PUPD_NONE, GPIO4);
+	gpio_mode_setup(GPIOB, GPIO_MODE_INPUT, GPIO_PUPD_NONE, GPIO6);
 	gpio_set_output_options(GPIOA, 
 			GPIO_OTYPE_PP, GPIO_OSPEED_50MHZ, GPIO15);
 	gpio_mode_setup(GPIOA, GPIO_MODE_OUTPUT, GPIO_PUPD_NONE, GPIO15);
@@ -201,7 +186,7 @@ void spi1_setup(void) {
 	rcc_periph_clock_enable(RCC_GPIOB);
 	rcc_periph_clock_enable(RCC_GPIOA);
 	rcc_periph_clock_enable(RCC_SPI1);
-	spi_init_master(SPI1, SPI_CR1_BAUDRATE_FPCLK_DIV_2, 
+	spi_init_master(SPI1, SPI_CR1_BAUDRATE_FPCLK_DIV_32, 
 			SPI_CR1_CPOL_CLK_TO_0_WHEN_IDLE,
                         SPI_CR1_CPHA_CLK_TRANSITION_1,
                         SPI_CR1_DFF_8BIT,
@@ -223,7 +208,7 @@ void spi3_setup(void) {
 	rcc_periph_clock_enable(RCC_GPIOB);
 	rcc_periph_clock_enable(RCC_GPIOA);
 	rcc_periph_clock_enable(RCC_SPI3);
-	spi_init_master(SPI3, SPI_CR1_BAUDRATE_FPCLK_DIV_4, 
+	spi_init_master(SPI3, SPI_CR1_BAUDRATE_FPCLK_DIV_16, 
 			SPI_CR1_CPOL_CLK_TO_0_WHEN_IDLE,
                         SPI_CR1_CPHA_CLK_TRANSITION_1,
                         SPI_CR1_DFF_8BIT,

@@ -6,3 +6,5 @@ bin/
 .gdb*
 generated.*.ld
 libopencm3/*
+cscope*
+mapfile*
